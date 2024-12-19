@@ -389,13 +389,9 @@ future<> client::do_make_request(connection& con, request& req, reply_handler& h
     return con.do_make_request(req).then([&con, &handle, expected] (connection::reply_ptr reply) mutable {
         auto& rep = *reply;
         if (expected.has_value() && rep._status != expected.value()) {
-            if (!http_log.is_enabled(log_level::debug)) {
-                return make_exception_future<>(httpd::unexpected_status_error(rep._status));
-            }
-
             return do_with(con.in(rep), [reply = std::move(reply)] (auto& in) mutable {
                 return util::read_entire_stream_contiguous(in).then([reply = std::move(reply)] (auto message) {
-                    http_log.debug("request finished with {}: {}", reply->_status, message);
+                    http_log.info("request finished with {}: {}", reply->_status, message);
                     return make_exception_future<>(httpd::unexpected_status_error(reply->_status));
                 });
             });
